@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>WhatsApp Bot Connect</title>
+<style>
+body {
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    font-family: 'Arial', sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: radial-gradient(ellipse at bottom, #0d0d1a 0%, #000000 100%);
+    overflow: hidden;
+    color: #fff;
+}
+.container {
+    background: rgba(0,0,0,0.6);
+    padding: 50px;
+    border-radius: 15px;
+    text-align: center;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 0 30px rgba(0,255,204,0.3);
+    animation: fadeIn 1s ease forwards;
+    position: relative;
+    z-index: 1;
+}
+@keyframes fadeIn { from {opacity:0; transform:translateY(-20px);} to {opacity:1; transform:translateY(0);} }
+h1 { margin-bottom: 30px; font-size:28px; text-shadow:0 0 10px #00ffcc; }
+input { padding: 12px 15px; margin: 10px 0; width: 260px; border-radius:8px; border:none; outline:none; font-size:16px; transition:0.3s; }
+input:focus { box-shadow:0 0 15px #00ffcc; }
+button { padding:12px 25px; margin-top:20px; border:none; border-radius:12px; background:#00ffcc; color:#000; font-size:16px; cursor:pointer; transition:0.3s; animation: glow 1.5s infinite alternate; }
+@keyframes glow {0%{box-shadow:0 0 10px #00ffcc;}50%{box-shadow:0 0 20px #00ffcc;}100%{box-shadow:0 0 10px #00ffcc;}}
+button:hover { transform:scale(1.05); background:#00e6b8; }
+#code { margin-top:25px; font-weight:bold; font-size:18px; }
+#starfield { position:fixed; top:0; left:0; width:100%; height:100%; z-index:0; }
+label { font-size:14px; margin-top:5px; display:block; }
+</style>
+</head>
+<body>
+
+<canvas id="starfield"></canvas>
+
+<div class="container">
+<h1>Connecte ton Bot WhatsApp</h1>
+
+<label>Indicatif du pays :</label>
+<input type="text" id="countryCode" placeholder="Ex: 243 pour RD Congo" required>
+
+<label>Numéro WhatsApp :</label>
+<input type="text" id="number" placeholder="Ex: 990123456" required>
+
+<button onclick="connectBot()">Connecter le bot</button>
+<p id="code"></p>
+</div>
+
+<script>
+// Canvas étoiles
+const canvas = document.getElementById('starfield');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+const stars = [];
+for(let i=0;i<150;i++){
+    stars.push({x:Math.random()*canvas.width, y:Math.random()*canvas.height, r:Math.random()*1.5+0.5, dx:(Math.random()-0.5)*0.3, dy:(Math.random()-0.5)*0.3, opacity:Math.random()});
+}
+function animateStars(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    for(let s of stars){
+        s.x+=s.dx; s.y+=s.dy; s.opacity+=(Math.random()-0.5)*0.05;
+        if(s.x<0) s.x=canvas.width; if(s.x>canvas.width) s.x=0;
+        if(s.y<0) s.y=canvas.height; if(s.y>canvas.height) s.y=0;
+        if(s.opacity<0) s.opacity=0; if(s.opacity>1) s.opacity=1;
+        ctx.beginPath();
+        ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
+        ctx.fillStyle=`rgba(255,255,255,${s.opacity})`;
+        ctx.fill();
+    }
+    requestAnimationFrame(animateStars);
+}
+animateStars();
+window.addEventListener('resize',()=>{canvas.width=window.innerWidth; canvas.height=window.innerHeight;});
+
+// Connexion bot
+async function connectBot() {
+    const code = document.getElementById('countryCode').value.trim();
+    const number = document.getElementById('number').value.trim();
+    if(!code||!number){alert("Veuillez entrer un indicatif et un numéro valide !"); return;}
+    const fullNumber = code.startsWith('+')?code+number:'+'+code+number;
+    const res = await fetch('/connect',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({number:fullNumber})});
+    const data = await res.json();
+    if(data.pairingCode) document.getElementById('code').innerText='Code de pairing: '+data.pairingCode;
+    else if(data.error) document.getElementById('code').innerText='Erreur: '+data.error;
+    else document.getElementById('code').innerText='Bot connecté et actif!';
+}
+</script>
+
+</body>
+</html>
